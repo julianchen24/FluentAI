@@ -1,0 +1,21 @@
+{
+    "app_name": "FluentAI",
+    "host": "0.0.0.0",
+    "port": 8000,
+    "rate_limit": 100,
+    "cache_size": 6,
+    "pivot_lang": "en",
+    "model_repo_url": "https://github.com/Helsinki-NLP/Opus-MT-train/tree/master/models",
+    "auto_update_models": true,
+    "log_level": "INFO",
+    "log_file": "fluentai.log",
+    "model_update_interval": 86400,
+    "supported_languages": [
+      "en", "es", "fr", "zh", "ru", "ja", "ko", "pt", "it", "hi", "ar", 
+      "de", "nl", "pl", "tr", "cs", "sv", "hu", "fi", "da", "no", "el", 
+      "he", "id", "ms", "th", "vi", "ro", "bg", "hr", "sr", "uk", "ca", 
+      "gl", "eu", "et", "lv", "lt", "sk", "sl", "is", "mt", "cy", "ga", 
+      "bn", "ta", "te", "ml", "ur", "fa", "ps", "am", "sw"
+    ],
+    "debug": false
+  }
