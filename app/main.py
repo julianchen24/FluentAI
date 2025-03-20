@@ -1,4 +1,7 @@
 # venv\Scripts\Activate.ps1
+# docker pull intel/nmt_marian_framework_demo
+# docker run -it intel/nmt_marian_framework_demo
+
 
 # app/main.py
 from fastapi import FastAPI

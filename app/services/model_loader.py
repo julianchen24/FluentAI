@@ -1,9 +1,11 @@
 # app/services/model_loader.py
 import asyncio
+import logging
 from collections import OrderedDict
-from transformers import MarianMTModel, MarianTokenizer
-from app.config import config
 import os
+from datetime import datetime
+from app.config import config
+from app.services.marian_runtime import MarianRuntime
 
 class ModelLoader:
     def __init__(self, cache_size: int = config.get("cache_size",6)):
@@ -21,33 +23,67 @@ class ModelLoader:
             self.models.move_to_end(key)
             return self.models[key]
         
+        logging.info(f"Loading model {key}")
+
         async with self.load_semaphore:
             # Offload blocking model load to a thread
-            loop = asyncio.get_event_loop()
-            model, tokenizer = await loop.run_in_executor(None, self._load_model_sync, src, tgt)
+            model_dir = os.path.join("app", "models", key)
+            if not os.path.exists(model_dir):
+                logging.error(f"Model directory not found: {model_dir}")
+                raise FileNotFoundError(f"Model directory not found: {model_dir}")
+            
+            # Create runtime
+            runtime = MarianRuntime(model_dir)
+            
+            # Initialize runtime (this will validate the model files)
+            try:
+                await runtime.start()
+                logging.info(f"Model {key} loaded successfully")
+            except Exception as e:
+                logging.error(f"Failed to load model {key}: {str(e)}")
+                raise
+
             if len(self.models) >= self.cache_size:
-                self.models.popitem(last=False)
-            self.models[key] = (model, tokenizer)
-            return model, tokenizer
-        
-    def _load_model_sync(self, src: str, tgt: str):
-        local_model_path = os.path.join("app", "models", f"{src}-{tgt}")
-        if not os.path.exists(local_model_path):
-            raise FileNotFoundError(f"Local model directory not found: {local_model_path}")
-        
-        model = MarianMTModel.from_pretrained(local_model_path)
-        tokenizer = MarianTokenizer.from_pretrained(local_model_path)
-        return model, tokenizer
+                oldest_key = next(iter(self.models))  # Get just the first key
+                oldest_runtime = self.models.pop(oldest_key)
+                logging.info(f"Cache full, unloading model {oldest_key}")
+                await oldest_runtime.stop()
+            
+            # Add to cache
+            self.models[key] = runtime
+            return runtime
     
-    def unload_model(self, src: str, tgt: str):
+    async def unload_model(self, src: str, tgt: str):
+        """Unload a model from cache"""
         key = self._make_model_key(src, tgt)
-        return self.models.pop(key, None)
+        if key in self.models:
+            runtime = self.models.pop(key)
+            await runtime.stop()
+            logging.info(f"Model {key} unloaded")
+            return True
+        return False
     
-    def clear_cache(self):
+    async def clear_cache(self):
+        """Clear all models from cache"""
+        for key, runtime in self.models.items():
+            logging.info(f"Stopping model {key}")
+            await runtime.stop()
+        
         self.models.clear()
+        logging.info("Model cache cleared")
 
     def get_status(self):
-        return list(reversed(self.models.keys()))
+        """Get status of loaded models"""
+        return [
+            {
+                "model_key": key,
+                "source_lang": key.split("-")[0],
+                "target_lang": key.split("-")[1],
+                "loaded_at": datetime.now().isoformat() if hasattr(runtime, "loaded_at") else None
+            }
+            for key, runtime in reversed(self.models.items())
+        ]
+    
     
 model_loader = ModelLoader()
     
