@@ -3,6 +3,7 @@ import asyncio
 from collections import OrderedDict
 from transformers import MarianMTModel, MarianTokenizer
 from app.config import config
+import os
 
 class ModelLoader:
     def __init__(self, cache_size: int = config.get("cache_size",6)):
@@ -30,9 +31,12 @@ class ModelLoader:
             return model, tokenizer
         
     def _load_model_sync(self, src: str, tgt: str):
-        model_name = f"Helsinki-NLP/opus-mt-{src}-{tgt}"
-        model = MarianMTModel.from_pretrained(model_name)
-        tokenizer = MarianTokenizer.from_pretrained(model_name)
+        local_model_path = os.path.join("app", "models", f"{src}-{tgt}")
+        if not os.path.exists(local_model_path):
+            raise FileNotFoundError(f"Local model directory not found: {local_model_path}")
+        
+        model = MarianMTModel.from_pretrained(local_model_path)
+        tokenizer = MarianTokenizer.from_pretrained(local_model_path)
         return model, tokenizer
     
     def unload_model(self, src: str, tgt: str):
