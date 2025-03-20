@@ -1,0 +1,12 @@
+models:
+  - opus.bpe32k-bpe32k.transformer.model1.npz.best-perplexity.npz
+vocabs:
+  - opus.bpe32k-bpe32k.vocab.yml
+  - opus.bpe32k-bpe32k.vocab.yml
+beam-size: 6
+normalize: 1
+word-penalty: 0
+mini-batch: 1
+maxi-batch: 1
+maxi-batch-sort: src
+relative-paths: true
