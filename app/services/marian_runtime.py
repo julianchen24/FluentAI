@@ -13,7 +13,22 @@ class MarianRuntime:
         # Only process one translation at a time
         self._translate_lock = asyncio.Lock()
 
-        
+    
+    def win_to_wsl_path(self, win_path):
+        """Convert Windows path to WSL path format to allow Marian NMT runtime"""
+        if os.name == 'nt':  # Check if running on Windows
+            # Handle full paths
+            if ':' in win_path:
+                drive, rest = os.path.splitdrive(win_path)
+                drive = drive.replace(':', '')
+                wsl_path = f"/mnt/{drive.lower()}{rest.replace('\\', '/')}"
+                return wsl_path
+            # Handle relative paths
+            else:
+                return win_path.replace('\\', '/')
+        return win_path  # Return unchanged if not on Windows
+    
+
     async def start(self):
         # Identify the required files in model_dir:
         files = os.listdir(self.model_dir)
@@ -32,11 +47,13 @@ class MarianRuntime:
         if not model_file or not vocab_file or not decoder_config:
             raise FileNotFoundError("Required model files not found in " + self.model_dir)
         
-        
+        model_file_wsl = self.win_to_wsl_path(model_file)
+        vocab_file_wsl = self.win_to_wsl_path(vocab_file)
+        decoder_config_wsl = self.win_to_wsl_path(decoder_config)
         # Build the command to run marian-decoder.
         # The typical command is:
         # marian-decoder -m <model_file> -v <vocab_file> <vocab_file> -c <decoder_config>
-        cmd = f"marian-decoder -m {model_file} -v {vocab_file} {vocab_file} -c {decoder_config}"
+        cmd = f"wsl marian-decoder -m {model_file_wsl} -v {vocab_file_wsl} {vocab_file_wsl} -c {decoder_config_wsl}"
         
         # Start the process asynchronously.
         try:
@@ -86,7 +103,7 @@ class MarianRuntime:
             except Exception as e:
                 logging.error(f"Translation error for {self.model_key}: {str(e)}")
                 # Check if process is still alive
-                if self.process.returncode is not None:
+                if self.process and self.process.returncode is not None:
                     logging.error(f"Process died, restarting for {self.model_key}")
                     await self.start()
                 raise RuntimeError(f"Translation error: {str(e)}")
