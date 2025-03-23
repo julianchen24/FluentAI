@@ -47,14 +47,20 @@ class MarianRuntime:
         if not model_file or not vocab_file or not decoder_config:
             raise FileNotFoundError("Required model files not found in " + self.model_dir)
         
+        model_file = os.path.abspath(model_file)
+        vocab_file = os.path.abspath(vocab_file)
+        decoder_config = os.path.abspath(decoder_config)
+
         model_file_wsl = self.win_to_wsl_path(model_file)
         vocab_file_wsl = self.win_to_wsl_path(vocab_file)
         decoder_config_wsl = self.win_to_wsl_path(decoder_config)
         # Build the command to run marian-decoder.
         # The typical command is:
         # marian-decoder -m <model_file> -v <vocab_file> <vocab_file> -c <decoder_config>
-        cmd = f"wsl marian-decoder -m {model_file_wsl} -v {vocab_file_wsl} {vocab_file_wsl} -c {decoder_config_wsl}"
+        cmd = f"wsl /mnt/c/Users/julia/FluentAI/marian-dev/build/marian-decoder -m {model_file_wsl} -v {vocab_file_wsl} {vocab_file_wsl} -c {decoder_config_wsl}"
         
+        logging.info(f"Starting marian-decoder with command: {cmd}")
+
         # Start the process asynchronously.
         try:
             self.process = await asyncio.create_subprocess_shell(
@@ -63,6 +69,13 @@ class MarianRuntime:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
+            await asyncio.sleep(2)
+            if self.process.returncode is not None:
+                stderr = await self.process.stderr.read()
+                error_msg = stderr.decode('utf-8').strip()
+                logging.error(f"Marian decoder process exited immediately: {error_msg}")
+                raise RuntimeError(f"Failed to start marian-decoder: {error_msg}")
+            
             self.loaded_at = datetime.now().isoformat()
             logging.info(f"Marian decoder started for {self.model_key}")
         except Exception as e:
