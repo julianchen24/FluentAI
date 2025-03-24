@@ -12,7 +12,6 @@ class MarianRuntime:
         self.model_key = os.path.basename(model_dir)
         # Only process one translation at a time
         self._translate_lock = asyncio.Lock()
-
     
     def win_to_wsl_path(self, win_path):
         """Convert Windows path to WSL path format to allow Marian NMT runtime"""
@@ -28,7 +27,6 @@ class MarianRuntime:
                 return win_path.replace('\\', '/')
         return win_path  # Return unchanged if not on Windows
     
-
     async def start(self):
         # Identify the required files in model_dir:
         files = os.listdir(self.model_dir)
@@ -51,13 +49,15 @@ class MarianRuntime:
         vocab_file = os.path.abspath(vocab_file)
         decoder_config = os.path.abspath(decoder_config)
 
-        model_file_wsl = self.win_to_wsl_path(model_file)
-        vocab_file_wsl = self.win_to_wsl_path(vocab_file)
-        decoder_config_wsl = self.win_to_wsl_path(decoder_config)
-        # Build the command to run marian-decoder.
-        # The typical command is:
-        # marian-decoder -m <model_file> -v <vocab_file> <vocab_file> -c <decoder_config>
-        cmd = f"wsl /mnt/c/Users/julia/FluentAI/marian-dev/build/marian-decoder -m {model_file_wsl} -v {vocab_file_wsl} {vocab_file_wsl} -c {decoder_config_wsl}"
+        # Convert paths if needed
+        if os.name == 'nt':  # If running on Windows
+            model_file = self.win_to_wsl_path(model_file)
+            vocab_file = self.win_to_wsl_path(vocab_file)
+            decoder_config = self.win_to_wsl_path(decoder_config)
+        
+        # When running in WSL terminal, just use the direct path to marian-decoder
+        # No need for wsl prefix
+        cmd = f"/mnt/c/Users/julia/FluentAI/marian-dev/build/marian-decoder -m {model_file} -v {vocab_file} {vocab_file} -c {decoder_config}"
         
         logging.info(f"Starting marian-decoder with command: {cmd}")
 
