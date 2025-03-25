@@ -11,7 +11,7 @@
     "log_file": "fluentai.log",
     "model_update_interval": 86400,
     "supported_languages": [
-      "en", "es", "fr", "zh", "ru", "ja", "ko", "pt", "it", "hi", "ar", 
+      "en", "es", "fr", "zh", "ru", "jap", "ko", "pt", "it", "hi", "ar", 
       "de", "nl", "pl", "tr", "cs", "sv", "hu", "fi", "da", "no", "el", 
       "he", "id", "ms", "th", "vi", "ro", "bg", "hr", "sr", "uk", "ca", 
       "gl", "eu", "et", "lv", "lt", "sk", "sl", "is", "mt", "cy", "ga", 

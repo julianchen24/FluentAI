@@ -2,6 +2,7 @@
 import os
 import asyncio
 import logging
+import html
 from datetime import datetime
 
 class MarianRuntime:
@@ -92,6 +93,9 @@ class MarianRuntime:
                 # Add a newline to the input text
                 input_text = text.strip() + '\n'
                 
+                # Log the input text for debugging
+                logging.info(f"Translation input for {self.model_key}: '{text}'")
+                
                 # Write to stdin
                 self.process.stdin.write(input_text.encode('utf-8'))
                 await self.process.stdin.drain()
@@ -104,6 +108,13 @@ class MarianRuntime:
                 
                 # Decode and strip whitespace
                 result = output_line.decode('utf-8').strip()
+                
+                # Fix HTML entities (like &apos;)
+                result = html.unescape(result)
+                
+                # Log the output for debugging
+                logging.info(f"Translation output for {self.model_key}: '{result}'")
+                
                 return result
                 
             except asyncio.TimeoutError:
